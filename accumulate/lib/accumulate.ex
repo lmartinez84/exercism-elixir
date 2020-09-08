@@ -16,14 +16,5 @@ defmodule Accumulate do
   """
 
   @spec accumulate(list, (any -> any)) :: list
-  def accumulate(list, fun) do
-    apply_fn(list, fun, [])
-  end
-
-  def apply_fn([head | tail], fun, result) do
-    new_res = List.insert_at(result, -1, fun.(head))
-    apply_fn(tail, fun, new_res)
-  end
-
-  def apply_fn([], _, result), do: result
+  def accumulate(list, fun), do: for(n <- list, do: fun.(n))
 end
