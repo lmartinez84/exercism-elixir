@@ -8,5 +8,14 @@ defmodule RotationalCipher do
   """
   @spec rotate(text :: String.t(), shift :: integer) :: String.t()
   def rotate(text, shift) do
+    String.to_charlist(text) |> Enum.map(&cipher(&1, shift)) |> List.to_string
   end
+
+  @spec cipher(char :: integer, encode:: integer) :: integer()
+  defp cipher(char, encode) when char in 65..90, do: encrypt(char, encode, ?A)
+  defp cipher(char, encode) when char in 97..122, do: encrypt(char, encode, ?a)
+  defp cipher(char, _encode), do: char
+
+  @spec encrypt(char :: integer, encode:: integer, cases:: integer) :: integer()
+  defp encrypt(char, encode, cases), do: rem((char - cases) + encode, 26) + cases
 end
