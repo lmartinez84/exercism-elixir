@@ -5,13 +5,6 @@ defmodule RobotSimulator do
            when is_tuple(position) and tuple_size(position) == 2 and is_integer(elem(position, 0)) and
                   is_integer(elem(position, 1))
 
-  defguard is_pointing_north(direction) when direction == :north
-  defguard is_pointing_south(direction) when direction == :south
-  defguard is_pointing_west(direction) when direction == :west
-  defguard is_pointing_east(direction) when direction == :east
-
-  defguard is_valid_instruction(instruction) when instruction in [?L, ?R, ?A]
-
   defmodule Robot do
     @enforce_keys [:position, :direction]
     defstruct [:position, :direction]
@@ -47,48 +40,48 @@ defmodule RobotSimulator do
   """
   @spec simulate(robot :: any, instructions :: String.t()) :: any
   def simulate(robot, instructions) do
-    instructions
-    |> String.to_charlist()
-    |> Enum.reduce(robot, fn inst, actual -> run(actual, inst) end)
+    run(robot, String.to_charlist(instructions))
   end
 
-  def run(robot = %{direction: dir}, ?L) when is_pointing_north(dir),
-    do: %{robot | direction: :west}
+  defp run(robot = %{direction: :north}, [?L | instructions]),
+    do: %{robot | direction: :west} |> run(instructions)
 
-  def run(robot = %{direction: dir}, ?L) when is_pointing_south(dir),
-    do: %{robot | direction: :east}
+  defp run(robot = %{direction: :south}, [?L | instructions]),
+    do: %{robot | direction: :east} |> run(instructions)
 
-  def run(robot = %{direction: dir}, ?L) when is_pointing_west(dir),
-    do: %{robot | direction: :south}
+  defp run(robot = %{direction: :west}, [?L | instructions]),
+    do: %{robot | direction: :south} |> run(instructions)
 
-  def run(robot = %{direction: dir}, ?L) when is_pointing_east(dir),
-    do: %{robot | direction: :north}
+  defp run(robot = %{direction: :east}, [?L | instructions]),
+    do: %{robot | direction: :north} |> run(instructions)
 
-  def run(robot = %{direction: dir}, ?R) when is_pointing_north(dir),
-    do: %{robot | direction: :east}
+  defp run(robot = %{direction: :north}, [?R | instructions]),
+    do: %{robot | direction: :east} |> run(instructions)
 
-  def run(robot = %{direction: dir}, ?R) when is_pointing_south(dir),
-    do: %{robot | direction: :west}
+  defp run(robot = %{direction: :south}, [?R | instructions]),
+    do: %{robot | direction: :west} |> run(instructions)
 
-  def run(robot = %{direction: dir}, ?R) when is_pointing_west(dir),
-    do: %{robot | direction: :north}
+  defp run(robot = %{direction: :west}, [?R | instructions]),
+    do: %{robot | direction: :north} |> run(instructions)
 
-  def run(robot = %{direction: dir}, ?R) when is_pointing_east(dir),
-    do: %{robot | direction: :south}
+  defp run(robot = %{direction: :east}, [?R | instructions]),
+    do: %{robot | direction: :south} |> run(instructions)
 
-  def run(robot = %{direction: dir, position: {x, y}}, ?A) when is_pointing_north(dir),
-    do: %{robot | position: {x, y + 1}}
+  defp run(robot = %{direction: :north, position: {x, y}}, [?A | instructions]),
+    do: %{robot | position: {x, y + 1}} |> run(instructions)
 
-  def run(robot = %{direction: dir, position: {x, y}}, ?A) when is_pointing_south(dir),
-    do: %{robot | position: {x, y - 1}}
+  defp run(robot = %{direction: :south, position: {x, y}}, [?A | instructions]),
+    do: %{robot | position: {x, y - 1}} |> run(instructions)
 
-  def run(robot = %{direction: dir, position: {x, y}}, ?A) when is_pointing_west(dir),
-    do: %{robot | position: {x - 1, y}}
+  defp run(robot = %{direction: :west, position: {x, y}}, [?A | instructions]),
+    do: %{robot | position: {x - 1, y}} |> run(instructions)
 
-  def run(robot = %{direction: dir, position: {x, y}}, ?A) when is_pointing_east(dir),
-    do: %{robot | position: {x + 1, y}}
+  defp run(robot = %{direction: :east, position: {x, y}}, [?A | instructions]),
+    do: %{robot | position: {x + 1, y}} |> run(instructions)
 
-  def run(_robot, _instruction), do: {:error, "invalid instruction"}
+  defp run(_robot, [_invalid_instruction | _]), do: {:error, "invalid instruction"}
+
+  defp run(robot, []), do: robot
 
   @doc """
   Return the robot's direction.
