@@ -1,5 +1,16 @@
 defmodule RobotSimulator do
-  @directions [:north, :east, :south, :west]
+  defguard has_valid_direction(direction) when direction in [:north, :east, :south, :west]
+
+  defguard has_valid_position(position)
+           when is_tuple(position) and tuple_size(position) == 2 and is_integer(elem(position, 0)) and
+                  is_integer(elem(position, 1))
+
+  defguard is_pointing_north(direction) when direction == :north
+  defguard is_pointing_south(direction) when direction == :south
+  defguard is_pointing_west(direction) when direction == :west
+  defguard is_pointing_east(direction) when direction == :east
+
+  defguard is_valid_instruction(instruction) when instruction in [?L, ?R, ?A]
 
   defmodule Robot do
     @enforce_keys [:position, :direction]
@@ -12,18 +23,22 @@ defmodule RobotSimulator do
   Valid directions are: `:north`, `:east`, `:south`, `:west`
   """
   @spec create(direction :: atom, position :: {integer, integer}) :: any
-  def create(direction \\ :north, position \\ {0, 0}) do
-    with {:ok, dir} <- get_direction(direction),
-         {:ok, pos} <- get_position(position) do
-      %Robot{position: pos, direction: dir}
-    end
+  def create(direction, position)
+      when has_valid_direction(direction) and has_valid_position(position) do
+    %Robot{position: position, direction: direction}
   end
 
-  defp get_position({x, y}) when is_integer(x) and is_integer(y), do: {:ok, {x, y}}
-  defp get_position(_), do: {:error, "invalid position"}
+  def create(direction, _position) when not has_valid_direction(direction) do
+    {:error, "invalid direction"}
+  end
 
-  defp get_direction(direction) when direction in @directions, do: {:ok, direction}
-  defp get_direction(_), do: {:error, "invalid direction"}
+  def create(_direction, position) when not has_valid_position(position) do
+    {:error, "invalid position"}
+  end
+
+  def create() do
+    %Robot{position: {0, 0}, direction: :north}
+  end
 
   @doc """
   Simulate the robot's executement given a string of instructions.
@@ -32,65 +47,48 @@ defmodule RobotSimulator do
   """
   @spec simulate(robot :: any, instructions :: String.t()) :: any
   def simulate(robot, instructions) do
-    with {:ok, instructions} <- get_instructions(instructions) do
-      instructions
-      |> Enum.reduce(
-        robot,
-        fn instruction, actual_robot -> execute(actual_robot, instruction) end
-        )
-    end
+    instructions
+    |> String.to_charlist()
+    |> Enum.reduce(robot, fn inst, actual -> run(actual, inst) end)
   end
 
-  def get_instructions(instructions) do
-    number_of_instructions = String.length(instructions)
-    {valid_instructions, count} = get_valid_instructions(instructions)
+  def run(robot = %{direction: dir}, ?L) when is_pointing_north(dir),
+    do: %{robot | direction: :west}
 
-    if number_of_instructions == count do
-      {:ok, valid_instructions}
-    else
-      {:error, "invalid instruction"}
-    end
-  end
+  def run(robot = %{direction: dir}, ?L) when is_pointing_south(dir),
+    do: %{robot | direction: :east}
 
-  defp get_valid_instructions(instructions) do
-    String.to_charlist(instructions)
-    |> Enum.filter(fn instruction -> instruction in [?L, ?R, ?A] end)
-    |> Enum.map_reduce(0, fn instruction, count -> { instruction,  count + 1 } end)
-  end
+  def run(robot = %{direction: dir}, ?L) when is_pointing_west(dir),
+    do: %{robot | direction: :south}
 
-  def execute(robot, ?L) do
-    direction = direction(robot)
+  def run(robot = %{direction: dir}, ?L) when is_pointing_east(dir),
+    do: %{robot | direction: :north}
 
-    case direction do
-      :north -> %{robot | direction: :west}
-      :west -> %{robot | direction: :south}
-      :east -> %{robot | direction: :north}
-      :south -> %{robot | direction: :east}
-    end
-  end
+  def run(robot = %{direction: dir}, ?R) when is_pointing_north(dir),
+    do: %{robot | direction: :east}
 
-  def execute(robot, ?R) do
-    direction = direction(robot)
+  def run(robot = %{direction: dir}, ?R) when is_pointing_south(dir),
+    do: %{robot | direction: :west}
 
-    case direction do
-      :north -> %{robot | direction: :east}
-      :west -> %{robot | direction: :north}
-      :east -> %{robot | direction: :south}
-      :south -> %{robot | direction: :west}
-    end
-  end
+  def run(robot = %{direction: dir}, ?R) when is_pointing_west(dir),
+    do: %{robot | direction: :north}
 
-  def execute(robot, ?A) do
-    direction = direction(robot)
-    {x, y} = position(robot)
+  def run(robot = %{direction: dir}, ?R) when is_pointing_east(dir),
+    do: %{robot | direction: :south}
 
-    case direction do
-      :north -> %{robot | position: {x, y + 1}}
-      :west -> %{robot | position: {x - 1, y}}
-      :east -> %{robot | position: {x + 1, y}}
-      :south -> %{robot | position: {x, y - 1}}
-    end
-  end
+  def run(robot = %{direction: dir, position: {x, y}}, ?A) when is_pointing_north(dir),
+    do: %{robot | position: {x, y + 1}}
+
+  def run(robot = %{direction: dir, position: {x, y}}, ?A) when is_pointing_south(dir),
+    do: %{robot | position: {x, y - 1}}
+
+  def run(robot = %{direction: dir, position: {x, y}}, ?A) when is_pointing_west(dir),
+    do: %{robot | position: {x - 1, y}}
+
+  def run(robot = %{direction: dir, position: {x, y}}, ?A) when is_pointing_east(dir),
+    do: %{robot | position: {x + 1, y}}
+
+  def run(_robot, _instruction), do: {:error, "invalid instruction"}
 
   @doc """
   Return the robot's direction.

@@ -1,4 +1,6 @@
 defmodule SecretHandshake do
+  use Bitwise, only_operators: true
+
   @doc """
   Determine the actions of a secret handshake based on the binary
   representation of the given `code`.
@@ -15,5 +17,23 @@ defmodule SecretHandshake do
   """
   @spec commands(code :: integer) :: list(String.t())
   def commands(code) do
+    masks = %{
+      1 => "wink",
+      2 => "double blink",
+      4 => "close your eyes",
+      8 => "jump"
+    }
+    reverse? = (code &&& 16) != 0
+    Enum.reduce(masks, [], fn {mask, action}, acc ->
+      case code &&& mask do
+        0 ->
+          acc
+        _ when reverse? ->
+          [action | acc]
+        _ ->
+          acc ++ [action]
+      end
+    end)
   end
+
 end
