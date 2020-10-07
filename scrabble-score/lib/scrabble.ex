@@ -3,9 +3,6 @@ defmodule Scrabble do
   Calculate the scrabble score for the word.
   """
   @spec score(String.t()) :: non_neg_integer
-  def score(""), do: 0
-  def score(" \t\n"), do: 0
-
   def score(word) do
     word
     |> String.upcase()
@@ -20,4 +17,5 @@ defmodule Scrabble do
   def compute(?K), do: 5
   def compute(char) when char in [?J, ?X], do: 8
   def compute(char) when char in [?Q, ?Z], do: 10
+  def compute(_), do: 0
 end
