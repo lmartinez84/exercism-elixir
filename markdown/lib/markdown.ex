@@ -10,70 +10,94 @@ defmodule Markdown do
     iex> Markdown.parse("#Header!\n* __Bold Item__\n* _Italic Item_")
     "<h1>Header!</h1><ul><li><em>Bold Item</em></li><li><i>Italic Item</i></li></ul>"
   """
+
+  # Several functions were refactored to take advantage of pipe operator
   @spec parse(String.t()) :: String.t()
   def parse(m) do
-    patch(Enum.join(Enum.map(String.split(m, "\n"), fn t -> process(t) end)))
+    m
+    |> String.split("\n")
+    |> Enum.map(&process/1)
+    |> Enum.join()
+    |> patch()
   end
 
-  defp process(t) do
-    if String.starts_with?(t, "#") || String.starts_with?(t, "*") do
-      if String.starts_with?(t, "#") do
-        enclose_with_header_tag(parse_header_md_level(t))
-      else
-        parse_list_md_level(t)
-      end
-    else
-      enclose_with_paragraph_tag(String.split(t))
-    end
+  # process was refactored to multiclause functions using pattern matching
+  defp process("#" <> _ = word) do
+    word
+    |> parse_header_md_level()
+    |> enclose_with_header_tag()
   end
 
+  defp process("*" <> _ = word) do
+    word
+    |> parse_list_md_level()
+  end
+
+  defp process(word) do
+    word
+    |> String.split()
+    |> enclose_with_paragraph_tag()
+  end
+
+  # I did not know how to refactor this function.
   defp parse_header_md_level(hwt) do
     [h | t] = String.split(hwt)
     {to_string(String.length(h)), Enum.join(t, " ")}
   end
 
   defp parse_list_md_level(l) do
-    t = String.split(String.trim_leading(l, "* "))
-    "<li>" <> join_words_with_tags(t) <> "</li>"
+    l
+    |> String.trim_leading("* ")
+    |> String.split()
+    |> enclose_with_list_items_tags()
   end
 
-  defp enclose_with_header_tag({hl, htl}) do
-    "<h" <> hl <> ">" <> htl <> "</h" <> hl <> ">"
+  defp enclose_with_list_items_tags(t), do: "<li>" <> join_words_with_tags(t) <> "</li>"
+
+  # extracted two helpers functions to create header preffix and suffix based on header length.
+  defp enclose_with_header_tag({header_length, enclosed}) do
+    create_length_based_preffix_header(header_length) <>
+      enclosed <> create_length_based_suffix_header(header_length)
   end
+
+  defp create_length_based_preffix_header(header_length), do: "<h" <> header_length <> ">"
+  defp create_length_based_suffix_header(header_length), do: "</h" <> header_length <> ">"
 
   defp enclose_with_paragraph_tag(t) do
-    "<p>#{join_words_with_tags(t)}</p>"
+    t
+    |> join_words_with_tags()
+    |> add_paragraph_tags()
   end
 
+  defp add_paragraph_tags(t), do: "<p>#{t}</p>"
+
   defp join_words_with_tags(t) do
-    Enum.join(Enum.map(t, fn w -> replace_md_with_tag(w) end), " ")
+    t
+    |> Enum.map(&replace_md_with_tag/1)
+    |> Enum.join(" ")
   end
 
   defp replace_md_with_tag(w) do
-    replace_suffix_md(replace_prefix_md(w))
+    w
+    |> replace_prefix_md()
+    |> replace_suffix_md()
   end
 
   defp replace_prefix_md(w) do
-    cond do
-      w =~ ~r/^#{"__"}{1}/ -> String.replace(w, ~r/^#{"__"}{1}/, "<strong>", global: false)
-      w =~ ~r/^[#{"_"}{1}][^#{"_"}+]/ -> String.replace(w, ~r/_/, "<em>", global: false)
-      true -> w
-    end
+    w
+    |> String.replace_prefix("__", "<strong>")
+    |> String.replace_prefix("_", "<em>")
   end
 
   defp replace_suffix_md(w) do
-    cond do
-      w =~ ~r/#{"__"}{1}$/ -> String.replace(w, ~r/#{"__"}{1}$/, "</strong>")
-      w =~ ~r/[^#{"_"}{1}]/ -> String.replace(w, ~r/_/, "</em>")
-      true -> w
-    end
+    w
+    |> String.replace_suffix("__", "</strong>")
+    |> String.replace_suffix("_", "</em>")
   end
 
   defp patch(l) do
-    String.replace_suffix(
-      String.replace(l, "<li>", "<ul>" <> "<li>", global: false),
-      "</li>",
-      "</li>" <> "</ul>"
-    )
+    l
+    |> String.replace("<li>", "<ul><li>", global: false)
+    |> String.replace_suffix("</li>", "</li></ul>")
   end
 end

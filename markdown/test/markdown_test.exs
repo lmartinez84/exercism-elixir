@@ -31,8 +31,8 @@ defmodule MarkdownTest do
 
   # @tag :pending
   test "with h1 header level" do
-    input = "# This will be an h1"
-    expected = "<h1>This will be an h1</h1>"
+    input = "# This will be an r1"
+    expected = "<h1>This will be an r1</h1>"
     assert Markdown.parse(input) == expected
   end
 
