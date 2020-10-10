@@ -23,14 +23,17 @@ defmodule Anagram do
     x = String.downcase(x)
 
     case are_equal?(base, x) do
-      true -> false
-      false -> is_anagram?(freq, x)
+      :equal -> :false
+      :different -> is_anagram?(freq, x)
     end
   end
 
-  @spec are_equal?(base :: String.t(), x :: String.t()) :: boolean()
+  @spec are_equal?(base :: String.t(), x :: String.t()) :: atom()
   defp are_equal?(base, x) do
-    base === x
+    case base === x do
+      :true -> :equal
+      :false -> :different
+    end
   end
 
   @spec is_anagram?(freq :: Map.t(), x :: String.t()) :: boolean()

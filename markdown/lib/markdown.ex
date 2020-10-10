@@ -16,9 +16,8 @@ defmodule Markdown do
   def parse(m) do
     m
     |> String.split("\n")
-    |> Enum.map(&process/1)
-    |> Enum.join()
-    |> patch()
+    |> Enum.map_join(&process/1)
+    |> add_ul_tags_if_list()
   end
 
   # process was refactored to multiclause functions using pattern matching
@@ -73,8 +72,7 @@ defmodule Markdown do
 
   defp join_words_with_tags(t) do
     t
-    |> Enum.map(&replace_md_with_tag/1)
-    |> Enum.join(" ")
+    |> Enum.map_join(" ", &replace_md_with_tag/1)
   end
 
   defp replace_md_with_tag(w) do
@@ -95,7 +93,7 @@ defmodule Markdown do
     |> String.replace_suffix("_", "</em>")
   end
 
-  defp patch(l) do
+  defp add_ul_tags_if_list(l) do
     l
     |> String.replace("<li>", "<ul><li>", global: false)
     |> String.replace_suffix("</li>", "</li></ul>")
